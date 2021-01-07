@@ -3,170 +3,151 @@ const bcrypt = require('bcrypt')
 
 const db = require('./usersdb')
 const playlists = require('./playlistsdb')
+
 const songs = require("./songsdb")
-const router = express.Router()
 const jsonwebtoken = require('jsonwebtoken')
 
-var secret = "sdfjhdkjfhsdkjfhsk"
-var accToken , id_token , header_access , header_id
+const router = express.Router()
+const secret = "sdfjhdkjfhsdkjfhsk"
 
-router.post("/login", function(request, response){
-	
+
+// Login (create the token)
+router.post("/token", function (request, response) {
 	const username = request.body.username
 	const password = request.body.password
 
-	db.getAccountByUsername(username, function(errors, account) {
-		if (0 < errors.length) {
-		response.status(500).end()
+	db.getAccountByUsername(username, function (error, account) {
+		if (0 < error.length) {
+			response.status(500).end()
 		} else if (!account) {
-			response.status(400).json({errors: "Account does not exist"})
-			} else {
-				bcrypt.compare(password, account.password, function(err, res){
-					
-					if (res == false) {
-							response.status(400).json({errors: "Wrong username or password"})
-					} else {
-					const accessToken = jsonwebtoken.sign({
-						accountId: account.id
-						},
-						secret
-					)
-					const idToken = jsonwebtoken.sign({
-						sub: account.id,
-						preferred_username: account.name
-						},
-						secret
-					)
+			response.status(400).json({
+				"error": "Account does not exist"
+			})
+		} else {
+			bcrypt.compare(password, account.password, function (err, res) {
+				if (res == false) {
+					response.status(400).json({
+						error: "Wrong username or password"
+					})
+				}
+				else {
+					//CREATE AND SEND BACK TOKEN (Bearer type)
+					const accessToken = jsonwebtoken.sign({ accountId: account.id }, secret)
+					const idToken = jsonwebtoken.sign({ sub: account.id, preferred_username: account.name }, secret)
 					response.status(200).json({
 						access_token: accessToken,
-						accountId: account.id,
 						token_type: "Bearer",
 						id_token: idToken
-						})
-
-						// accToken = accessToken
-						// account_id = account.id
-					}			
-				})
-			}
+					})
+				}
+			})
+		}
 	})
-		
 })
-	
-	
-	
 
+function getValidationErrors(name, picture) {
 
-
-
-function getValidationErrors(name, picture){
-	
 	const errors = []
-	
-	if(name.length == 0){
+
+	if (name.length == 0) {
 		errors.push("Name may not be empty.")
 	}
-	
-	if(picture.length == 0){
+
+	if (picture.length == 0) {
 		errors.push("Must enter a picture.")
 	}
-	
+
 	return errors
-	
+
 }
 
+function getValidationErrors2() {
+
+	const errors = []
 
 
-router.post("/create", function(request, response){
-	
-	const name = request.body.name
-	const picture = request.body.picture
-	const public = request.body.public
-	
 
-	const errors = getValidationErrors(name, picture)
-	
-	if(errors.length == 0){
-		try{
+	return errors
 
-			// header_access = request.header('access_token')
-			// if(!header_access) {throw response.status(400).json("Missing access token")}
-			// if(!jsonwebtoken.verify(header_access, secret)) {throw response.status(400).json("Wrong access token")}
+}
 
-			const authorizationHeader = request.header("authorization") // "Bearer XXX"
-			if (!authorizationHeader) { throw 'Token missing' }
-			const accessToken = authorizationHeader.substring("Bearer ".length) // "XXX"
-			if (!accessToken) { throw 'Invalid Token' }
-			const payload = jwt.verify(accessToken, secret)
-			if (!payload) { throw 'Invalid Token' }
+//Create playlist (Need Token)
+router.post("/playlist", function (request, response) {
+	const owner_id = request.body.owner_id // playlist owner
+	const name = request.body.name // playlist name
+	const public = request.body.public // is public playlist ?
+	const picture = request.body.picture //playlist picture
 
-			if( (jsonwebtoken.verify(header_access, secret)) ) {
-					playlists.createPlaylist(name, picture , public , account_id, function(error){
-						if(error){
-							response.status(500).json({error})
-							
-						}else{
-								const model = {
-								name: name,
-								picture : picture ,
-								public : public 
-							}
-							response.status(200).json({model})	
-							
-						}
-					})
+	try {
+		const authorizationHeader = request.header("authorization") // "Bearer XXX"
+		if (!authorizationHeader) { throw 'Token missing' }
+		const accessToken = authorizationHeader.substring("Bearer ".length)
+		if (!accessToken) { throw 'Invalid Token' }
+		const payload = jsonwebtoken.verify(accessToken, secret)
+		if (!payload) { throw 'Invalid Token' }
+		const accountId = payload.sub
+		// console.log("owner recieved is ", owner_id, " account id from api is ", accountId)
+		if (owner_id != accountId) { throw "bad user" }
+
+		playlists.createPlaylist(name, picture, public, owner_id, function (error) {
+			if (error) {
+				response.status(500).json({ "error": error })
+			} else {
+				response.status(200).json({ "status": 200, "action": "playlist created" })
 			}
-		}
-	catch {
-		response.status(400).json("Unpredicted error")
+		})
+	} catch (error) {
+		console.log(error)
+		response.status(400).json({ error })
 	}
-		
-	}else{
-		response.status(400).json({errors})
-		
-	}
-	
 })
 
-
-
-
-
-router.post("/addsong", function(request, response){
-	
+//Add song to playlist (Need Token)
+router.post("/playlistsong", function (request, response) {
 	const songID = request.body.songId
 	const playlistID = request.body.playlistId
-	
-	
-
-		try{
-
-			header_access = request.header('access_token')
-
-			if(!header_access) {throw response.status(400).json("Missing access token")}
-			if(!jsonwebtoken.verify(header_access, secret)) {throw response.status(400).json("Wrong access token")}
-
-
-			if( (jsonwebtoken.verify(header_access, secret)) ) {
-			
-				songs.addSongToPlaylist(playlistID , songID , function(error){
-					if(error){
-						response.status(500).json({error})
-					}else{
-						const model = {
-						   playlistID: playlistID ,
-						   songID : songID
+	const errors = getValidationErrors2()
+	let gooduser = false
+	if (errors.length == 0) {
+		try {
+			const authorizationHeader = request.header("authorization") // "Bearer XXX"
+			if (!authorizationHeader) { throw 'Token missing' }
+			const accessToken = authorizationHeader.substring("Bearer ".length)
+			if (!accessToken) { throw 'Invalid Token' }
+			const payload = jsonwebtoken.verify(accessToken, secret)
+			if (!payload) { throw 'Invalid Token' }
+			const accountId = payload.sub
+			console.log(accountId)
+			//if (owner_id != accountId) { throw "bad user" }
+			playlists.getPlaylistsByOwnerId(accountId, function (error, playlists) {
+				if (!error) {
+					playlists.forEach(element => {
+						// console.log(element.id, " <element id | owner id> ", element.ownerID, " playlist id from header:", playlistID, " accountid from payload:", accountId)
+						if (element.id == playlistID && element.ownerID == accountId) {
+							gooduser = true
+							songs.addSongToPlaylist(playlistID, songID, function (error) {
+								if (error) {
+									response.status(500).json({ error })
+								} else {
+									const model = {
+										playlistID: playlistID,
+										songID: songID
+									}
+									response.status(200).json({ "status":"Success" })
+								}
+							})
 						}
-						response.status(200).json({model})
-					}
-				})
-			}
+					})
+					if (!gooduser) {response.status(400).json({"error":"This user can't access this playlist"})}
+				}
+			})
+		} catch (error) {
+			console.log(error)
+			response.status(400).json({ error })
 		}
-		catch {
-			response.status(400).json("Wrong access token")
-		}
-
-	
+	} else {
+		response.status(400).json({ errors })
+	}
 })
 
 module.exports = router;
