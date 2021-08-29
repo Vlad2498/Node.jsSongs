@@ -1,8 +1,8 @@
 const sqlite = require('sqlite3')
 
-const db = new sqlite.Database("database.db")
+const database = new sqlite.Database("database.db")
 
-db.run(`CREATE TABLE IF NOT EXISTS songs(
+database.run(`CREATE TABLE IF NOT EXISTS songs(
 	id INTEGER PRIMARY KEY,
 	name TEXT,
     artist TEXT ,
@@ -17,7 +17,7 @@ exports.getAllSongs = function(callback){
 	const query = "SELECT * FROM songs ORDER BY id"
 	const values = []
 
-	db.all(query, values, function(error, songs){
+	database.all(query, values, function(error, songs){
 		if(error){
 			callback("Database error.")
 		}else{
@@ -34,7 +34,7 @@ exports.getSongsFromPlaylist = function(id, callback){
 	const query = "SELECT S.* FROM songs S INNER JOIN refference R on S.id = R.songID WHERE R.playlistID = ? "
 	const values = [id]
 	
-	db.all(query, values, function(error, songs){
+	database.all(query, values, function(error, songs){
 		
 		if(error){
 			callback("Database error.")
@@ -50,7 +50,7 @@ exports.getSongsFromAllPlaylist = function(id, callback){
 	const query = "SELECT S.* FROM songs S INNER JOIN refference R on S.id = R.songID INNER JOIN playlists P on P.id = R.playlistID AND P.owner_id = ?  "
 	const values = [id]
 	
-	db.all(query, values, function(error, songs){
+	database.all(query, values, function(error, songs){
 		
 		if(error){
 			callback("Database error.")
@@ -67,7 +67,7 @@ exports.getSongsFromAllPlaylistPublic = function(id, callback){
 	const query = "SELECT S.* FROM songs S INNER JOIN refference R on S.id = R.songID INNER JOIN playlists P on P.id = R.playlistID AND P.ownerID = ?  AND P.ispublic = 1"
 	const values = [id]
 	
-	db.all(query, values, function(error, songs){
+	database.all(query, values, function(error, songs){
 		
 		if(error){
 			callback("Database error.")
@@ -87,7 +87,7 @@ exports.addSongToPlaylist = function(playlistID, songID ,  callback){
 	var values = [playlistID, songID ]
 	
 	
-	db.run(query, values, function(error){
+	database.run(query, values, function(error){
 		
 		if(error){
 			if (error.errno === 19 ) {
@@ -109,7 +109,7 @@ exports.deleteSongById = function(songID, playlistID, callback){
 	const query = "DELETE FROM refference WHERE songID = ? AND playlistID = ?"
 	const values = [songID , playlistID]
 	
-	db.run(query, values, function(error){
+	database.run(query, values, function(error){
 		
 		if(error){
 			callback("Database error.")

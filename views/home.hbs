@@ -21,8 +21,8 @@
 </div>
 
 
-{{#if errorOcurred}}
-                <p>Internal server error, try again later!</p>
+{{#if playlistsError}}
+                <p>Internal server error, try again later! {{playlistsError}}</p>
             {{else}}
                 
                 {{#if playlists.length}}

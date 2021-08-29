@@ -26,6 +26,7 @@
             color: rgba(255,255,255,1);            
             border-bottom:solid 4px rgba(0,255,238,1);
             border-radius: 10px;
+            cursor: pointer;
             }
 
             .image {
@@ -46,6 +47,9 @@
         {{!-- User's profile picture  , name and details --}}
     <div class="scroll" style="width:105.8%; overflow-x: hidden; ">
         <div>
+        {{#if usersErrorMessage}}
+            <p>Internal server error, try again later! {{usersErrorMessage}}</p>
+        {{/if}}
         {{#if user}}
         <div class="prf">
             <img src=/{{user.picture}} id="profilePicSquare" style="width: 300px; height:300px;">
@@ -75,8 +79,8 @@
         {{!-- Playlists & Songs --}}
         <div id="plst" style="visibility: visible;position:relative; ">
 
-            {{#if errorOcurred}}
-                <p>Internal server error, try again later!</p>
+            {{#if playlistsErrorMessage}}
+                <p>Internal server error, try again later! {{playlistsErrorMessage}}</p>
             {{else}}
                 
                 {{#if playlists.length}}
@@ -119,8 +123,8 @@
                 <div style=" max-width:fit-content;"><span class="smg" >Length</span></div>
             </div>
 
-            {{#if errorOcurred}}
-                <p>Internal server error, try again later!</p>
+            {{#if songsErrorMessage}}
+                <p>Internal server error, try again later! {{songsErrorMessage}}</p>
             {{else}}
                 
                 {{#if songs.length}}

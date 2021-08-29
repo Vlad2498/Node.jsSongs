@@ -1,10 +1,10 @@
 const express = require('express')
 const bcrypt = require('bcrypt')
 
-const db = require('./usersdb')
-const playlists = require('./playlistsdb')
+const usersTable = require('./usersdb')
+const playlistsTable = require('./playlistsdb')
 
-const songs = require("./songsdb")
+const songsTable = require("./songsdb")
 const jsonwebtoken = require('jsonwebtoken')
 
 const router = express.Router()
@@ -16,7 +16,7 @@ router.post("/token", function (request, response) {
 	const username = request.body.username
 	const password = request.body.password
 
-	db.getAccountByUsername(username, function (error, account) {
+	usersTable.getAccountByUsername(username, function (error, account) {
 		if (0 < error.length) {
 			response.status(500).end()
 		} else if (!account) {
@@ -89,7 +89,7 @@ router.post("/playlist", function (request, response) {
 		// console.log("owner recieved is ", owner_id, " account id from api is ", accountId)
 		if (owner_id != accountId) { throw "bad user" }
 
-		playlists.createPlaylist(name, picture, public, owner_id, function (error) {
+		playlistsTable.createPlaylist(name, picture, public, owner_id, function (error) {
 			if (error) {
 				response.status(500).json({ "error": error })
 			} else {
@@ -119,13 +119,13 @@ router.post("/playlistsong", function (request, response) {
 			const accountId = payload.sub
 			console.log(accountId)
 			//if (owner_id != accountId) { throw "bad user" }
-			playlists.getPlaylistsByOwnerId(accountId, function (error, playlists) {
+			playlistsTable.getPlaylistsByOwnerId(accountId, function (error, playlists) {
 				if (!error) {
 					playlists.forEach(element => {
 						// console.log(element.id, " <element id | owner id> ", element.ownerID, " playlist id from header:", playlistID, " accountid from payload:", accountId)
 						if (element.id == playlistID && element.ownerID == accountId) {
 							gooduser = true
-							songs.addSongToPlaylist(playlistID, songID, function (error) {
+							songsTable.addSongToPlaylist(playlistID, songID, function (error) {
 								if (error) {
 									response.status(500).json({ error })
 								} else {

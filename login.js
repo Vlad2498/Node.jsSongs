@@ -1,5 +1,5 @@
 const express = require('express')
-const db = require('./usersdb')
+const usersTable = require('./usersdb')
 const bcrypt = require('bcrypt')
 const router = express.Router()
 
@@ -19,7 +19,7 @@ router.post("/login", function (request, response) {
 	const username = request.body.username
 	const password = request.body.password
 
-	db.getAccountByUsername(username, function (errors, account) {
+	usersTable.getAccountByUsername(username, function (errors, account) {
 		if (account == null) {
 			const model = {
 				username: username,

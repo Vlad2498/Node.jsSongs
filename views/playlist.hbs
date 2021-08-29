@@ -33,20 +33,17 @@
     <body>
 
     <div class="scroll" style="width:105.8%; overflow-x: hidden; ">
+        <div style="position: absolute; top:90px; width:fit-content; height:fit-content;">
+        <form action="" method="POST">
+            <input  style="width:0px; height:0px; position:absolute; top:0px; visibility:hidden" type="text" name="ownerID" value="{{playlist.ownerID}}">
+                <button type="submit"  class ="del"><img src="/delete.png" style="height: 40px; width:40px; cursor:pointer;" > </button>
+        </form>
+        </div>
 
-
-
-
-            <div style="position: absolute; top:90px; width:fit-content; height:fit-content;">
-            <form action="" method="POST">
-                <input  style="width:0px; height:0px; position:absolute; top:0px; visibility:hidden" type="text" name="ownerID" value="{{playlist.ownerID}}">
-                    <button type="submit"  class ="del"><img src="/delete.png" style="height: 40px; width:40px; cursor:pointer;" > </button>
-            </form>
-            </div>
-
-
-
- {{!-- Top bar All songs and number os songs --}}
+    {{#if playlistsErrorMessage}}
+        <p>Internal server error, try again later! {{playlistsErrorMessage}}</p>
+    {{else}}
+            {{!-- Top bar All songs and number of songs --}}
             <div style=" position:relative; left:50px; width:1510;">
                 
                 <div style=" max-width:fit-content;float:left; margin-top:50px;"><span id="txt">{{playlist.name}}</span> </div>
@@ -67,11 +64,11 @@
                 <div style=" max-width:fit-content;position:relative; left:1195px;"><span class="smg" >Length</span> </div>
                 
             </div>    
+    {{/if}}
 
 
-
-    {{#if errorOcurred}}
-                <p>Internal server error, try again later!</p>
+    {{#if songsErrorMessage}}
+                <p>Internal server error, try again later! {{songsErrorMessage}}</p>
             {{else}}
                 {{#if songs.length}}
                     {{!-- Displaying the songs --}}

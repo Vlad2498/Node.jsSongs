@@ -1,7 +1,7 @@
 const express = require('express')
-const users_db = require('./usersdb')
-const playlists_db = require('./playlistsdb')
-const songs_db = require('./songsdb')
+const usersTable = require('./usersdb')
+const playlistsTable = require('./playlistsdb')
+const songsTable = require('./songsdb')
 
 const router = express.Router()
 
@@ -12,11 +12,12 @@ router.get("/", function(request, response){
 		response.render("not_loggedin.hbs", {layout:"intro.hbs"})
 	
 	}else{
-		users_db.getAllUsers(function(error, users){
+		usersTable.getAllUsers(function(error, users){
 			
 			
 				const model = {
-					users: users
+					users: users,
+					errorMessage: error
 				}
 				response.render("users.hbs", model)
 			
@@ -35,14 +36,16 @@ router.get("/:id", function(request, response){
 		response.render("not_loggedin.hbs", {layout:"intro.hbs"})
 	
 	}else{
-		users_db.getUserById(id, function(error, user){
-				owner_id = id
-				playlists_db.getPlaylistsByOwnerId(id,function(error,playlists){
-					songs_db.getSongsFromAllPlaylistPublic(id,function(error,songs){
+		usersTable.getUserById(id, function(usersError, user){
+				playlistsTable.getPlaylistsByOwnerId(id,function(playlistsError,playlists){
+					songsTable.getSongsFromAllPlaylistPublic(id,function(songsError,songs){
 						const model = {
 							user:user ,
 							playlists:playlists,
-							songs:songs
+							songs:songs,
+							songsErrorMessage: songsError,
+							playlistsErrorMessage: playlistsError,
+							usersErrorMessage: usersError
 						}
 						
 						response.render("user.hbs", model)

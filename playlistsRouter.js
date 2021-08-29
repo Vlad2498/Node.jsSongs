@@ -1,10 +1,10 @@
 const express = require('express')
-const db = require('./playlistsdb')
-const db1 = require("./songsdb")
+const playlistsTable = require('./playlistsdb')
+const songsTable = require("./songsdb")
 
 const router = express.Router()
 
-function getValidationErrors(name, picture){
+function getPlaylistValidationErrors(name, picture){
 	
 	const errors = []
 	
@@ -27,7 +27,7 @@ function getValidationErrors(name, picture){
 
 router.get("/", function(request, response){
 	
-	db.getAllPlaylists(function(error, playlists){
+	playlistsTable.getAllPlaylists(function(error, playlists){
 		
 		if(!request.session.isLoggedIn){		
 			// response.send('Please login to view this page!');
@@ -35,7 +35,8 @@ router.get("/", function(request, response){
 		}
 		else{
 			const model = {
-				playlists: playlists
+				playlists: playlists,
+				playlistsError: error
 			}
 			response.render("home.hbs", model)
 			
@@ -66,13 +67,14 @@ router.post("/create", function(request, response){
 	const public = request.body.public
 	const owner_id = request.body.owner_id
 	
-	const errors = getValidationErrors(name, picture)
+	const errors = getPlaylistValidationErrors(name, picture)
 	
 	if(errors.length == 0){
 		
-		db.createPlaylist(name, picture , public , owner_id, function(error){
+		playlistsTable.createPlaylist(name, picture , public , owner_id, function(error){
 			if(error){
 				// TODO: Handle error.
+				response.send('The operation could not be completed.' + error);
 			}else{
 				response.redirect("/home")
 			}
@@ -104,21 +106,17 @@ router.get("/:id", function(request, response){
 
 	const id = request.params.id
 	
-	db.getPlaylistById(id, function(error, playlist){
-		
-		if(error){
-			// TODO: Handle error.
-		}else
-			{
-				db1.getSongsFromPlaylist(id ,function(error,songs){
+	playlistsTable.getPlaylistById(id, function(playlistsError, playlist){
+				songsTable.getSongsFromPlaylist(id ,function(songsError,songs){
 					const model = {
 						playlist:playlist,
-						songs: songs
+						songs: songs,
+						playlistsErrorMessage: playlistsError,
+						songsErrorMessage: songsError
 					}
 					response.render("playlist.hbs", model)
 
 				})
-			}
 		})	
 	}
 })
@@ -129,26 +127,32 @@ router.post("/delsong", function(request, response){
 	const songID = request.body.songID
 	const playlistID = request.body.playlistID
 	
-	db1.deleteSongById(songID, playlistID ,function(error){
-		
-		if(error){
-			// TODO: Handle error.
-		}else{
-			db.getPlaylistById(playlistID, function(error, playlist){
-		
-					
-						db1.getSongsFromPlaylist(playlistID ,function(error,songs){
-							const model = {
-								playlist:playlist,
-								songs: songs
-							}
-							response.render("playlist.hbs", model)
-		
-						})
-					
-				})	
+	songsTable.deleteSongById(songID, playlistID ,function(deleteSongError){
+		if(deleteSongError){
+			response.send('Internal server error, try again later!' + deleteSongError);
 		}
-		
+		else {
+			playlistsTable.getPlaylistById(playlistID, function(playlistsError, playlist){
+				if (playlistsError){
+					response.send('Internal server error, try again later!' + playlistsError);
+				}
+				else {
+						songsTable.getSongsFromPlaylist(playlistID ,function(songsError,songs){
+							if (playlistsError){
+								response.send('Internal server error, try again later!' + songsError);
+							}
+							else {
+								const model = {
+									playlist:playlist,
+									songs: songs,
+									errorMessage: songsError
+								}
+								response.render("playlist.hbs", model)
+							}
+						})
+					}
+				})
+			}	
 	})
 	
 })
@@ -159,10 +163,10 @@ router.post("/:id", function(request, response){
 	
 	const id = request.params.id
 	
-	db.deletePlaylistById(id, function(error){
+	playlistsTable.deletePlaylistById(id, function(error){
 		
 		if(error){
-			// TODO: Handle error.
+			response.send('Internal server error, try again later!' + error);
 		}else{
 			response.redirect("/home")
 		}

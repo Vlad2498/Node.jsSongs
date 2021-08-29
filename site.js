@@ -2,8 +2,8 @@ const express = require('express')
 const expressHandlebars = require('express-handlebars')
 const bodyParser = require('body-parser')
 const expressSession = require('express-session')
-const db = require('./playlistsdb')
-const db1 = require('./songsdb')
+const playlistsTable = require('./playlistsdb')
+const songsTable = require('./songsdb')
 
 const songRouter = require('./songsRouter')
 const userRouter = require('./usersRouter')
@@ -92,14 +92,14 @@ app.get("/own_profile", function (request, response) {
 		response.render('not_loggedin.hbs', { layout: "intro.hbs" })
 
 	} else {
-		db.getAllPlaylistsByOwnerId(request.session.account.id, function (error, playlists) {
+		playlistsTable.getAllPlaylistsByOwnerId(request.session.account.id, function (error, playlists) {
 
 			if (!request.session.isLoggedIn) {
 				// response.send('Please login to view this page!');
 				response.render('not_loggedin.hbs', { layout: "intro.hbs" })
 			}
 			else {
-				db1.getSongsFromAllPlaylist(request.session.account.id, function (error, songs) {
+				songsTable.getSongsFromAllPlaylist(request.session.account.id, function (error, songs) {
 					const model = {
 						playlists: playlists,
 						songs: songs

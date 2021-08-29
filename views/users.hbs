@@ -9,8 +9,10 @@
       <div class="scroll" style="width:105.8%; overflow-x: hidden; ">
       <br>
       <br>
-      {{#if errorOcurred}}
-        <p>Internal server error, try again later!</p>
+      {{#if errorMessage}}
+        <p>Internal server error, try again later!
+          {{errorMessage}}
+        </p>
       {{else}}
         {{#if users.length}}
         {{!-- Displaying the users --}}
