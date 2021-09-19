@@ -13,14 +13,11 @@ router.get("/", function(request, response){
 	
 	}else{
 		usersTable.getAllUsers(function(error, users){
-			
-			
 				const model = {
 					users: users,
 					errorMessage: error
 				}
 				response.render("users.hbs", model)
-			
 		})
 	}
 })

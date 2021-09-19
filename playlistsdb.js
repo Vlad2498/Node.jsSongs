@@ -45,6 +45,7 @@ exports.createPlaylist = function(name, picture, public, owner_id, callback){
 	db.run(query, values, function(error){
 		
 		if(error){
+			console.log(error)
 			callback("Database error.")
 		}else{
 			callback(null, this.lastID)

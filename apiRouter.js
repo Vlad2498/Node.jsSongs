@@ -45,7 +45,7 @@ router.post("/token", function (request, response) {
 	})
 })
 
-function getValidationErrors(name, picture) {
+function getPlaylistValidationErrors(name, picture) {
 
 	const errors = []
 
@@ -61,14 +61,20 @@ function getValidationErrors(name, picture) {
 
 }
 
-function getValidationErrors2() {
-
-	const errors = []
-
-
-
-	return errors
-
+function authorize(request) {
+	try {
+		const authorizationHeader = request.header("authorization") // "Bearer XXX"
+		if (!authorizationHeader) { return false }
+		const accessToken = authorizationHeader.substring("Bearer ".length)
+		if (!accessToken) { return false }
+		const payload = jsonwebtoken.verify(accessToken, secret)
+		console.log(payload)
+		return payload
+	}
+	catch(exception){
+		return false
+	}
+	
 }
 
 //Create playlist (Need Token)
@@ -78,14 +84,23 @@ router.post("/playlist", function (request, response) {
 	const public = request.body.public // is public playlist ?
 	const picture = request.body.picture //playlist picture
 
+	const payload = authorize(request)
+	if (!payload) {
+		response.status(401).json({ message: "User is not authorized" })
+		return
+	}
+
+	console.log(name, picture, public, owner_id)
+
+	const errors = getPlaylistValidationErrors(name, picture)
+
+	if (errors.length > 0) {
+		return (response.status(400). json({"error": "Playlist name and/or picture fields must not be empty"}))
+	} 
+
 	try {
-		const authorizationHeader = request.header("authorization") // "Bearer XXX"
-		if (!authorizationHeader) { throw 'Token missing' }
-		const accessToken = authorizationHeader.substring("Bearer ".length)
-		if (!accessToken) { throw 'Invalid Token' }
-		const payload = jsonwebtoken.verify(accessToken, secret)
-		if (!payload) { throw 'Invalid Token' }
-		const accountId = payload.sub
+		
+		const accountId = payload.accountId
 		// console.log("owner recieved is ", owner_id, " account id from api is ", accountId)
 		if (owner_id != accountId) { throw "bad user" }
 
@@ -102,51 +117,47 @@ router.post("/playlist", function (request, response) {
 	}
 })
 
+
+
 //Add song to playlist (Need Token)
 router.post("/playlistsong", function (request, response) {
 	const songID = request.body.songId
 	const playlistID = request.body.playlistId
-	const errors = getValidationErrors2()
 	let gooduser = false
-	if (errors.length == 0) {
-		try {
-			const authorizationHeader = request.header("authorization") // "Bearer XXX"
-			if (!authorizationHeader) { throw 'Token missing' }
-			const accessToken = authorizationHeader.substring("Bearer ".length)
-			if (!accessToken) { throw 'Invalid Token' }
-			const payload = jsonwebtoken.verify(accessToken, secret)
-			if (!payload) { throw 'Invalid Token' }
-			const accountId = payload.sub
-			console.log(accountId)
-			//if (owner_id != accountId) { throw "bad user" }
-			playlistsTable.getPlaylistsByOwnerId(accountId, function (error, playlists) {
-				if (!error) {
-					playlists.forEach(element => {
-						// console.log(element.id, " <element id | owner id> ", element.ownerID, " playlist id from header:", playlistID, " accountid from payload:", accountId)
-						if (element.id == playlistID && element.ownerID == accountId) {
-							gooduser = true
-							songsTable.addSongToPlaylist(playlistID, songID, function (error) {
-								if (error) {
-									response.status(500).json({ error })
-								} else {
-									const model = {
-										playlistID: playlistID,
-										songID: songID
-									}
-									response.status(200).json({ "status":"Success" })
+	const payload = authorize(request)
+	if (!payload) {
+		response.status(401).json({ message: "User is not authorized" })
+		return
+	}
+	try {
+		const accountId = payload.accountId
+		console.log(accountId)
+		//if (owner_id != accountId) { throw "bad user" }
+		playlistsTable.getPlaylistsByOwnerId(accountId, function (error, playlists) {
+			if (!error) {
+				playlists.forEach(element => {
+					// console.log(element.id, " <element id | owner id> ", element.ownerID, " playlist id from header:", playlistID, " accountid from payload:", accountId)
+					if (element.id == playlistID && element.ownerID == accountId) {
+						gooduser = true
+						songsTable.addSongToPlaylist(playlistID, songID, function (error) {
+							if (error) {
+								response.status(500).json({ error })
+							} else {
+								const model = {
+									playlistID: playlistID,
+									songID: songID
 								}
-							})
-						}
-					})
-					if (!gooduser) {response.status(400).json({"error":"This user can't access this playlist"})}
-				}
-			})
-		} catch (error) {
-			console.log(error)
-			response.status(400).json({ error })
-		}
-	} else {
-		response.status(400).json({ errors })
+								response.status(200).json({ "status":"Success" })
+							}
+						})
+					}
+				})
+				if (!gooduser) {response.status(400).json({"error":"This user can't access this playlist"})}
+			}
+		})
+	} catch (error) {
+		console.log(error)
+		response.status(400).json({ error })
 	}
 })
 
