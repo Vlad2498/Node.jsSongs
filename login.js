@@ -2,7 +2,8 @@ const express = require('express')
 const usersTable = require('./usersdb')
 const bcrypt = require('bcrypt')
 const router = express.Router()
-
+const jsonwebtoken = require('jsonwebtoken')
+const secret = "sdfjhdkjfhsdkjfhsk"
 
 router.get("/", function (request, response) {
 	const model = {
@@ -39,8 +40,11 @@ router.post("/login", function (request, response) {
 					response.render("login.hbs", model)
 				} else {
 					// Login was successful
+					const authorization = jsonwebtoken.sign({ accountId: account.id }, secret)
+					response.cookie("authorization", authorization)
 					request.session.account = account
 					request.session.isLoggedIn = true
+					request.session.authorization = authorization
 					response.redirect("/home")
 
 				}

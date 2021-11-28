@@ -1,6 +1,8 @@
 const express = require('express')
 const playlistsTable = require('./playlistsdb')
 const songsTable = require("./songsdb")
+const jsonwebtoken = require('jsonwebtoken')
+const secret = "sdfjhdkjfhsdkjfhsk"
 
 const router = express.Router()
 
@@ -26,6 +28,10 @@ function getPlaylistValidationErrors(name, picture){
 
 
 router.get("/", function(request, response){
+	// if (!request.authorization){
+	// 	response.send("Sugi pula")
+	// }
+	console.log(request.session.authorization)
 	
 	playlistsTable.getAllPlaylists(function(error, playlists){
 		
@@ -58,6 +64,18 @@ router.get("/create", function(request, response){
 	response.render("create_playlist.hbs")
 })
 
+// function that does the authorization check
+function authorize(token, owner_id) {
+	try {
+		const payload = jsonwebtoken.verify(token, secret)
+		console.log("create playlist " + token)
+		return payload.accountId === owner_id
+	}
+	catch(exception){
+		console.log(exception)
+		return false
+	}
+}
 
 
 router.post("/create", function(request, response){
@@ -67,6 +85,11 @@ router.post("/create", function(request, response){
 	const public = request.body.public
 	const owner_id = request.body.owner_id
 	
+	if (!authorize(request.session.authorization, owner_id)) {
+		response.status(401).json({ message: "User is not authorized" })
+		return
+	}
+
 	const errors = getPlaylistValidationErrors(name, picture)
 	
 	if(errors.length == 0){
@@ -126,6 +149,12 @@ router.post("/delsong", function(request, response){
 	
 	const songID = request.body.songID
 	const playlistID = request.body.playlistID
+
+	const accountId = request.session.account ? request.session.account.id : null
+	if (!authorize(request.session.authorization, accountId)) {
+		response.status(401).json({ message: "User is not authorized" })
+		return
+	}
 	
 	songsTable.deleteSongById(songID, playlistID ,function(deleteSongError){
 		if(deleteSongError){
